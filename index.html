@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Space Shooter Game</title>
+    <style>
+        body { margin: 0; }
+        canvas { display: block; }
+    </style>
+</head>
+<body>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        // Scene
+        const scene = new THREE.Scene();
+
+        // Camera
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.z = 5;
+
+        // Renderer
+        const renderer = new THREE.WebGLRenderer();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        // Player
+        const playerGeometry = new THREE.BoxGeometry();
+        const playerMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+        const player = new THREE.Mesh(playerGeometry, playerMaterial);
+        player.position.y = -3; // Letakkan pesawat di bawah (sumbu y paling bawah) dari canvas
+        scene.add(player);
+
+        // Array untuk menyimpan asteroid
+        const asteroids = [];
+
+        // Fungsi untuk membuat asteroid baru secara acak
+        function createAsteroid() {
+            const asteroidGeometry = new THREE.SphereGeometry(0.5, 32, 32);
+            const asteroidMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+            const asteroid = new THREE.Mesh(asteroidGeometry, asteroidMaterial);
+            asteroid.position.x = (Math.random() - 0.5) * 10; // Posisi asteroid secara acak dari kiri ke kanan
+            asteroid.position.y = 5; // Mulai dari posisi paling atas layar
+            scene.add(asteroid);
+            asteroids.push(asteroid);
+        }
+
+        // Fungsi untuk menghapus asteroid yang berada di luar canvas
+        function removeAsteroid(asteroid) {
+            scene.remove(asteroid);
+            asteroids.splice(asteroids.indexOf(asteroid), 1);
+        }
+
+        // Fungsi untuk mengecek tabrakan antara bola dan pesawat
+        function checkCollision() {
+            asteroids.forEach((asteroid) => {
+                if (asteroid.position.y < player.position.y + 1 && 
+                    asteroid.position.y > player.position.y - 1 && 
+                    asteroid.position.x < player.position.x + 1 &&
+                    asteroid.position.x > player.position.x - 1) {
+                    gameOver();
+                }
+            });
+        }
+
+        // Fungsi untuk mengatur game over
+        function gameOver() {
+            alert("Kamu kalah! Bola mengenai kamu.");
+            restartGame();
+        }
+
+        // Fungsi untuk memulai ulang game
+        function restartGame() {
+            // Kembalikan posisi pesawat ke posisi semula
+            player.position.x = 0;
+            asteroids.forEach((asteroid) => {
+                scene.remove(asteroid); // Menghapus asteroid dari scene
+            });
+            asteroids.length = 0; // Mengosongkan array asteroids
+        }
+
+        // Game loop
+        const animate = function () {
+            requestAnimationFrame(animate);
+
+            // Buat asteroid baru secara acak
+            if (Math.random() < 0.01) {
+                createAsteroid();
+            }
+
+            // Gerakkan asteroid ke bawah dan hapus jika sudah berada di luar canvas
+            asteroids.forEach((asteroid) => {
+                asteroid.position.y -= 0.05;
+                if (asteroid.position.y < -5) {
+                    removeAsteroid(asteroid);
+                }
+            });
+
+            // Periksa tabrakan setiap frame
+            checkCollision();
+
+            renderer.render(scene, camera);
+        };
+
+        animate();
+
+        // Event listener untuk menangani klik canvas
+        renderer.domElement.addEventListener('click', () => {
+            restartGame();
+        });
+
+        // Event listener untuk menangani input keyboard
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'ArrowLeft') {
+                player.position.x -= 0.1; // Gerakkan pesawat ke kiri
+            } else if (event.key === 'ArrowRight') {
+                player.position.x += 0.1; // Gerakkan pesawat ke kanan
+            }
+        });
+    </script>
+</body>
+</html>
