@@ -31,7 +31,7 @@
         const playerGeometry = new THREE.BoxGeometry();
         const playerMaterial = new THREE.ShaderMaterial({
             uniforms: {
-                time: { value: 0 }
+                time: { value: 1.0 }
             },
             vertexShader: `
             varying vec2 vUv;
@@ -189,11 +189,16 @@
 
         // Event listener untuk menangani input keyboard
         document.addEventListener('keydown', (event) => {
-            if (event.key === 'ArrowLeft') {
+            if(player.position.x >=-5){
+                if (event.key === 'ArrowLeft') {
                 player.position.x -= 0.1; // Gerakkan pesawat ke kiri
-            } else if (event.key === 'ArrowRight') {
-                player.position.x += 0.1; // Gerakkan pesawat ke kanan
+                } 
+            }if (player.position.x<=5){
+                if (event.key === 'ArrowRight') {
+                    player.position.x += 0.1; // Gerakkan pesawat ke kanan
+                }
             }
+
         });
     </script>
 </body>
