@@ -8,9 +8,13 @@
         canvas { display: block; }
     </style>
 </head>
-<body>
+<body style="overflow-x: hidden;overflow-y: hidden;">
+    <h1 style="font-family:sans-serif;position: absolute; font-size: 4rem; color: white; z-index: 1; text-align: center; left: 50%; top: 40%; transform: translate(-50%, -50%);">
+        404 Not Found
+    </h1>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script>
+        
         // Scene
         const scene = new THREE.Scene();
 
@@ -25,7 +29,56 @@
 
         // Player
         const playerGeometry = new THREE.BoxGeometry();
-        const playerMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+        const playerMaterial = new THREE.ShaderMaterial({
+            uniforms: {
+                time: { value: 0 }
+            },
+            vertexShader: `
+            varying vec2 vUv;
+            uniform float time;
+
+            void main() {
+                vUv = uv;
+                vec3 pos = position;
+
+                // Menambahkan efek sinusoidal dengan amplitudo berubah-ubah
+                float squishFactor = 0.1; // Ubah sesuai keinginan
+                float squishSpeed = 2.0; // Ubah sesuai keinginan
+                float squishAmplitude = 0.05; // Ubah sesuai keinginan
+
+                float squish = squishFactor * sin(time * squishSpeed);
+                pos.y -= squish * sin(pos.x * 5.0); // Ubah 5.0 sesuai keinginan
+
+                gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
+            }
+            `,
+            fragmentShader: `
+            varying vec2 vUv;
+            uniform float time; // Uniform untuk mengontrol animasi
+
+            void main() {
+                // Menentukan warna berdasarkan koordinat vUv
+                vec3 color = vec3(vUv.x, vUv.y, 0.5);
+
+                // Menambahkan animasi ke warna
+                float animationSpeed = 1.0; // Kecepatan animasi, bisa disesuaikan
+                vec3 animatedColor = vec3(
+                    0.5 + 0.5 * sin(time * animationSpeed),
+                    0.5 + 0.5 * sin(time * animationSpeed + 2.0),
+                    0.5 + 0.5 * sin(time * animationSpeed + 4.0)
+                );
+
+                // Menggabungkan warna asli dan warna animasi
+                color += animatedColor * 0.5; // Sesuaikan kecerahan animasi
+
+                // Pastikan nilai warna berada dalam rentang [0, 1]
+                color = clamp(color, 0.0, 1.0);
+
+                // Set warna untuk setiap piksel
+                gl_FragColor = vec4(color, 1.0);
+            }
+            `
+        });
         const player = new THREE.Mesh(playerGeometry, playerMaterial);
         player.position.y = -3; // Letakkan pesawat di bawah (sumbu y paling bawah) dari canvas
         scene.add(player);
@@ -36,7 +89,27 @@
         // Fungsi untuk membuat asteroid baru secara acak
         function createAsteroid() {
             const asteroidGeometry = new THREE.SphereGeometry(0.5, 32, 32);
-            const asteroidMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+            const asteroidMaterial = new THREE.ShaderMaterial({
+                uniforms: {
+                    time: { value: 0 }
+                },
+                vertexShader: `
+                    varying vec2 vUv;
+                    uniform float time;
+                    void main() {
+                        vUv = uv;
+                        vec3 pos = position;
+                        pos.y -= cos(pos.x * 5.0 + time) * 0.1; // Animasi dengan kosinus
+                        gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
+                    }
+                `,
+                fragmentShader: `
+                    varying vec2 vUv;
+                    void main() {
+                        gl_FragColor = vec4(vUv.x, vUv.y, 0.5, 1.0); // Warna pelangi untuk asteroid
+                    }
+                `
+            });
             const asteroid = new THREE.Mesh(asteroidGeometry, asteroidMaterial);
             asteroid.position.x = (Math.random() - 0.5) * 10; // Posisi asteroid secara acak dari kiri ke kanan
             asteroid.position.y = 5; // Mulai dari posisi paling atas layar
@@ -79,8 +152,14 @@
         }
 
         // Game loop
-        const animate = function () {
+        const animate = function (time) {
             requestAnimationFrame(animate);
+
+            // Kirim nilai waktu ke shader
+            player.material.uniforms.time.value = time * 0.001;
+            asteroids.forEach((asteroid) => {
+                asteroid.material.uniforms.time.value = time * 0.001;
+            });
 
             // Buat asteroid baru secara acak
             if (Math.random() < 0.01) {
@@ -101,7 +180,7 @@
             renderer.render(scene, camera);
         };
 
-        animate();
+        animate(0); // Mulai animasi dengan waktu 0
 
         // Event listener untuk menangani klik canvas
         renderer.domElement.addEventListener('click', () => {
